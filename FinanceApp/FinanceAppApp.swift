@@ -7,14 +7,16 @@
 
 import SwiftUI
 import CoreData
+import LocalAuthentication
+import CoreLocation
 
 @main
 struct FinanceAppApp: App {
     let persistenceController = PersistenceController.shared
-
+    
     var body: some Scene {
         WindowGroup {
-            FinanceAppView()
+            ContentView()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
         }
     }

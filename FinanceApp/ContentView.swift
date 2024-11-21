@@ -4,6 +4,7 @@
 //
 //  Created by Yueyang Ding on 2024-11-21.
 import SwiftUI
+import CoreData
 import LocalAuthentication
 import CoreLocation
 
@@ -15,9 +16,12 @@ struct ContentView: View {
         if isAuthenticated {
             if locationManager.permissionDenied {
                 // Blank Page with Location Request Button
-                BlankPage(locationManager: locationManager)
+                BlankPage(locationManager: locationManager, message: "Location permission denied. Please allow location access.")
+            } else if !locationManager.isInCanada {
+                // Page for users outside Canada
+                BlankPage(locationManager: locationManager, message: "You are not at the allowed location. This app is only accessible in Canada.")
             } else {
-                // Display FinanceAppView when Face ID and Location are granted
+                // Display FinanceAppView when Face ID and Location are valid
                 FinanceAppView()
                     .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)
             }
@@ -67,10 +71,11 @@ struct FaceIDAuthView: View {
 
 struct BlankPage: View {
     @ObservedObject var locationManager: LocationManager
+    var message: String
 
     var body: some View {
         VStack {
-            Text("Location permission denied.")
+            Text(message)
                 .font(.headline)
                 .padding()
 
@@ -88,10 +93,12 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private var locationManager = CLLocationManager()
 
     @Published var permissionDenied = false
+    @Published var isInCanada = false
 
     override init() {
         super.init()
         locationManager.delegate = self
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest
         checkLocationPermission()
     }
 
@@ -109,6 +116,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             permissionDenied = true
         case .authorizedAlways, .authorizedWhenInUse:
             permissionDenied = false
+            locationManager.startUpdatingLocation()
         @unknown default:
             permissionDenied = true
         }
@@ -118,5 +126,29 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         DispatchQueue.main.async {
             self.checkLocationPermission()
         }
+    }
+
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let location = locations.first else { return }
+
+        // Use reverse geocoding to determine if the user is in Canada
+        let geocoder = CLGeocoder()
+        geocoder.reverseGeocodeLocation(location) { placemarks, error in
+            if let placemark = placemarks?.first, let country = placemark.country {
+                DispatchQueue.main.async {
+                    self.isInCanada = (country == "Canada")
+                }
+            } else {
+                DispatchQueue.main.async {
+                    self.isInCanada = false
+                }
+            }
+        }
+
+        locationManager.stopUpdatingLocation()
+    }
+
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print("Failed to get user location: \(error.localizedDescription)")
     }
 }

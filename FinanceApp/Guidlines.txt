@@ -1,0 +1,73 @@
+Evaluation: 100 Points. (20%)
+Instructions :
+    •    This is a group assignment. You can work in a team of maximum 3 members.
+    •    The final grades will be dependent on individual work as well as successful completion of planned project work as a team.
+    •    There will be periodical check-ins and submissions for various phases of the project which could be graded or ungraded. Grade distribution and due dates for the same will be updated in the submission folder periodically.
+    •    I will use iPhone 15 simulator to run the iOS app. If you would have watchOS or iPadOS component to your project, you will be asked to provide deployment version details.
+Project Proposal and Setup:
+You are required to create an iOS application as a part of this project. You may also add watchOS and iPadOS support for the app. The app must support functionalities as specified below:
+
+To start with the project, you are required to create the proposal document having following information about your project work:
+Introduction to app:
+Provide the introduction to the application by describing
+    •    purpose of the app,
+    •    the target audience,
+    •    important features,
+    •    services and functionalities provided to the user,
+    •    various use-cases of the app, etc.
+Work Distribution:
+Provide the work distribution for each of the team member. There must be exactly one owner for a functionality and/or use-case. Specify the name and student id for each of the member along with functionalities and use-cases they will be responsible for. Your individual grade will depend on the functionality and/or use-case for which you are the owner.
+Note:
+    •    Once you are ready with the proposal document, create a GitHub repository for your app (private repository having all team members as collaborators), and add the proposal document details in ReadMe file of your repository.
+    •    You must add me as the collaborator in your team on GitHub for me to evaluate the project. Use email omer.mohamed@sheridancollege.ca for the invitation.
+    •    I will refer to the proposal document during periodic check-ins, submissions and final evaluation of the project for evaluation purposes. Hence, I recommend that you should regularly update the ReadMe file of your repository to reflect the evolution in the app UI and functionalities throughout the term.
+Project Demonstration:
+In the last week of the term, you are to demonstrate your project work. Before demonstration of the project, make sure that you
+    •    merge all the branches of individual team members to the master branch of your repository on GitHub,
+    •    update the ReadMe file of your repository to reflect the functionalities accomplished and add the screenshots for various screens in your app,
+    •    record the video/screen demonstrating the functionalities and features of your app and upload it to the project submission folder on SLATE.
+During the demonstration of your project
+    •    code walkthroughs are to be provided by each team member for the functionalities and/or use-cases they are listed as owner and
+    •    question-answer to be done with entire team and individual team members by prof.
+Note:
+    •    Each member of the team must be available at the time of project demonstration. Final grade for the project will only be assigned after the demonstration given by all the team members.
+    •    More details about the mechanism and scheduling of the demonstration will be provided to you at least a week earlier.
+Project Requirements and Implementation:
+User Interface:
+    •    Your app must have responsive UI designed using SwiftUI.
+    •    UI should look consistent on different form factors such as screen size, screen orientation, dark mode or light mode.
+    •    The UI should be crisp and beautiful.
+    •    The text in all the Views must be legible at every size in various form factors.
+    •    Adornments must be subtle and appropriate.
+    •    Consider designing your app using the Human Interface Guidelines provided by Apple.
+Code Organization and Version Controlling:
+    •    Your app must be structured using appropriate architecture such as MVVM/ MVC.
+    •    The code must be modular, used appropriate naming conventions.
+    •    Use comments to describe the functionalities of each of the user-defined classes and methods in your code.
+    •    Your project must be version controlled using GitHub. The GitHub repository should be private having all the team members and prof as the collaborators. Each of the team member must be working on their individual branch of the project, perform regular commits and merge their work with master branch of the repository.
+    •    Contribution in the project by each of the team member will be assessed through the work they have committed on repository and will be determining factor for individual grading.
+Fundamental iOS Functionalities:
+You should use appropriate iOS functionalities such as Lists, Views, Stacks, Pickers, NavigationView, Location, Camera, etc. for various use-cases in your app as required. There should be appropriate navigation between the views. Use appropriate property wrappers to exchange or share data between views and app.
+Data Persistence:
+You must use CoreData or Cloud Firestore for data persistence in your app. Use appropriate architecture to organize your code while doing data persistence.
+Location Services:
+You must use location services such as fetching device location, geocoding and/or reverse geocoding for appropriate functionality in your app.
+Advanced iOS Functionalities:
+You must use one of the following advanced iOS functionalities in your app:
+    •    WidgetKit
+    •    App Clip
+    •    watchOS
+    •    Push Notifications
+    •    Machine Learning
+Submission Checklist:
+    •    Write the comments containing your Group number, name at top of each file along with student ID and full name of all group members.
+    •    Once you are done with the project, upload the following to the SLATE dropbox,
+    •    a .zip file (no .rar or .7zip please) containing an entire project having functionalities of all the team members,
+    •    A link to the GitHub repository, in comment section of your submission,
+    •    A screen-recording of your app execution which should demonstrate all the functionalities and/or errors if any.
+Notes:
+    •    All assignment shall be submitted by the deadline. Late submissions will be penalized with 10% per day for up to 3 calendar days after which the assignment cannot be submitted anymore. See the Academic Procedure for Evaluations.
+    •    If you want to use any entitled accommodation for the assignment, you MUST inform the professor at least 2 working days in advance of the due date.
+    •    Remember that completing the assignment by yourself will ensure your success on the midterm and final exam. See the Academic Honesty at Sheridan.
+    •    It is mandatory to meet the naming conventions specified for all the files to be submitted.
+

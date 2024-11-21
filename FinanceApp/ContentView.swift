@@ -11,6 +11,7 @@ struct Product: Identifiable {
     let title: String
     var revenue: Double
 }
+//Test message 
 
 struct FinanceAppView: View {
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .medium)

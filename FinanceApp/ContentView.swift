@@ -13,21 +13,47 @@ struct ContentView: View {
     @State private var isAuthenticated = false
 
     var body: some View {
-        if isAuthenticated {
-            if locationManager.permissionDenied {
-                // Blank Page with Location Request Button
-                BlankPage(locationManager: locationManager, message: "Location permission denied. Please allow location access.")
-            } else if !locationManager.isInCanada {
-                // Page for users outside Canada
-                BlankPage(locationManager: locationManager, message: "You are not at the allowed location. This app is only accessible in Canada.")
-            } else {
-                // Display FinanceAppView when Face ID and Location are valid
+        Group {
+            if isAuthenticated && !locationManager.permissionDenied && locationManager.isInCanada {
+                // Navigate to FinanceAppView when Face ID and Location are valid
                 FinanceAppView()
                     .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)
+            } else if !isAuthenticated {
+                // Face ID authentication screen
+                FaceIDAuthView(isAuthenticated: $isAuthenticated)
+            } else {
+                // Location permission issue or not in Canada
+                BlankPage(locationManager: locationManager, message: "Location permission denied or invalid location. Please allow access or move to a valid location.")
+            }
+        }
+        .onAppear {
+            // Check location permission and trigger Face ID authentication on launch
+            locationManager.checkLocationPermission()
+            if !isAuthenticated {
+                authenticateWithFaceID()
+            }
+        }
+    }
+
+    private func authenticateWithFaceID() {
+        let context = LAContext()
+        var error: NSError?
+
+        // Check if Face ID is available
+        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
+            context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: "Authenticate to use the app") { success, error in
+                DispatchQueue.main.async {
+                    if success {
+                        isAuthenticated = true
+                    } else {
+                        isAuthenticated = false
+                        print("Authentication failed: \(error?.localizedDescription ?? "Unknown error")")
+                    }
+                }
             }
         } else {
-            // Face ID Authentication Screen
-            FaceIDAuthView(isAuthenticated: $isAuthenticated)
+            print("Face ID not available: \(error?.localizedDescription ?? "Unknown error")")
+            isAuthenticated = false
         }
     }
 }
@@ -41,7 +67,7 @@ struct FaceIDAuthView: View {
                 .font(.headline)
                 .padding()
 
-            Button("Authenticate") {
+            Button("Retry Authentication") {
                 authenticateWithFaceID()
             }
             .padding()
@@ -125,20 +151,42 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         DispatchQueue.main.async {
             self.checkLocationPermission()
+            if manager.authorizationStatus == .authorizedWhenInUse || manager.authorizationStatus == .authorizedAlways {
+                self.locationManager.startUpdatingLocation()
+            }
         }
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.first else { return }
 
+        print("Updated location: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+
         // Use reverse geocoding to determine if the user is in Canada
         let geocoder = CLGeocoder()
         geocoder.reverseGeocodeLocation(location) { placemarks, error in
-            if let placemark = placemarks?.first, let country = placemark.country {
+            if let error = error {
+                print("Reverse geocoding failed: \(error.localizedDescription)")
                 DispatchQueue.main.async {
-                    self.isInCanada = (country == "Canada")
+                    self.isInCanada = false
+                }
+                return
+            }
+
+            if let placemark = placemarks?.first {
+                if let country = placemark.country {
+                    print("Detected country: \(country)") // Debug
+                    DispatchQueue.main.async {
+                        self.isInCanada = (country.contains("Canada") || country.lowercased() == "ca")
+                    }
+                } else {
+                    print("Country not found in placemark.") // Debug
+                    DispatchQueue.main.async {
+                        self.isInCanada = false
+                    }
                 }
             } else {
+                print("No placemarks found.") // Debug
                 DispatchQueue.main.async {
                     self.isInCanada = false
                 }
@@ -152,3 +200,5 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         print("Failed to get user location: \(error.localizedDescription)")
     }
 }
+
+// MARK: - PersistenceController

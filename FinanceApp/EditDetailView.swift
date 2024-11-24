@@ -4,68 +4,179 @@
 //
 //  Created by Yueyang Ding on 2024-11-21.
 //
-
 import SwiftUI
 
+struct ButtonCategory: Identifiable, Codable, Equatable {
+    let id: UUID
+    let name: String
 
-struct ButtonCategory: Identifiable {
-    let id = UUID() // 唯一标识符
-    let name: String // 类别名称
+    static func ==(lhs: ButtonCategory, rhs: ButtonCategory) -> Bool {
+        lhs.id == rhs.id
+    }
+}
+
+struct IdentifiableString: Identifiable {
+    let id = UUID()
+    let value: String
 }
 
 struct EditDetailView: View {
-    @State private var foodItems: [String] = ["按钮 1", "按钮 2"]
-    @State private var workItems: [String] = ["按钮 3", "按钮 4", "按钮 5"]
-    @State private var noneItems: [String] = []
-    @State private var showingFullScreen: ButtonCategory? = nil // 当前展示的全屏类别
+    @AppStorage("foodItems") private var savedFoodItems: Data = Data()
+    @AppStorage("workItems") private var savedWorkItems: Data = Data()
+    @AppStorage("noneItems") private var savedNoneItems: Data = Data()
     
+    @State private var foodItems: [String] = []
+    @State private var workItems: [String] = []
+    @State private var noneItems: [String] = []
+    
+    @State private var showingFullScreen: ButtonCategory? = nil
+    @State private var selectedItemDetail: IdentifiableString? = nil
+    @State private var newItemText: String = ""
+    @State private var isAddingNewItem: Bool = false
+    @State private var isEditingItem: Bool = false
+    @State private var selectedCategoryForNewItem: ButtonCategory? = nil
+    @State private var currentCategory: ButtonCategory? = nil
+    @State private var itemToEdit: (category: ButtonCategory, index: Int, text: String)?
+
     var body: some View {
         NavigationView {
             VStack {
-                // Food 类别
+                // Food Category
                 SectionView(
-                    title: ButtonCategory(name: "Food"),
+                    title: ButtonCategory(id: UUID(), name: "Food"),
                     items: $foodItems,
                     otherLists: [$workItems, $noneItems],
-                    showingFullScreen: $showingFullScreen
+                    showingFullScreen: $showingFullScreen,
+                    onEditItem: startEditingItem,
+                    onDeleteItem: deleteItem,
+                    onSelectItem: selectItemDetail
                 )
                 
-                // Work 类别
+                // Work Category
                 SectionView(
-                    title: ButtonCategory(name: "Work"),
+                    title: ButtonCategory(id: UUID(), name: "Work"),
                     items: $workItems,
                     otherLists: [$foodItems, $noneItems],
-                    showingFullScreen: $showingFullScreen
+                    showingFullScreen: $showingFullScreen,
+                    onEditItem: startEditingItem,
+                    onDeleteItem: deleteItem,
+                    onSelectItem: selectItemDetail
                 )
                 
-                // None 类别
+                // None Category
                 SectionView(
-                    title: ButtonCategory(name: "None"),
+                    title: ButtonCategory(id: UUID(), name: "None"),
                     items: $noneItems,
                     otherLists: [$foodItems, $workItems],
-                    showingFullScreen: $showingFullScreen
+                    showingFullScreen: $showingFullScreen,
+                    onEditItem: startEditingItem,
+                    onDeleteItem: deleteItem,
+                    onSelectItem: selectItemDetail
                 )
             }
             .padding()
             .navigationBarTitle("分类按钮列表", displayMode: .inline)
-        }
-        .fullScreenCover(item: $showingFullScreen) { category in
-            // 显示全屏视图
-            FullScreenCategoryView(
-                title: category.name,
-                items: getItems(for: category.name),
-                onBack: { showingFullScreen = nil }
-            )
+            .navigationBarItems(trailing: Button(action: {
+                isAddingNewItem = true
+            }) {
+                Image(systemName: "plus")
+            })
+            .sheet(isPresented: $isAddingNewItem) {
+                SelectCategoryView(
+                    newItemText: $newItemText,
+                    selectedCategory: $selectedCategoryForNewItem,
+                    categories: [
+                        ButtonCategory(id: UUID(), name: "Food"),
+                        ButtonCategory(id: UUID(), name: "Work"),
+                        ButtonCategory(id: UUID(), name: "None")
+                    ],
+                    onSave: addItem,
+                    onCancel: {
+                        isAddingNewItem = false
+                    }
+                )
+            }
+            .sheet(isPresented: $isEditingItem) {
+                if let item = itemToEdit {
+                    EditItemView(
+                        itemText: item.text,
+                        onSave: { newText in
+                            updateItem(category: item.category, index: item.index, newValue: newText)
+                        },
+                        onCancel: {
+                            isEditingItem = false
+                        }
+                    )
+                }
+            }
+            .sheet(item: $selectedItemDetail) { detail in
+                ItemDetailView(detailText: detail.value)
+            }
+            .onAppear(perform: loadData)
+            .onDisappear(perform: saveData)
         }
     }
     
-    // 获取指定类别的绑定数组
+    // Functions to handle data operations
+    func addItem() {
+        if let category = selectedCategoryForNewItem {
+            getItems(for: category.name).wrappedValue.append(newItemText)
+        }
+        newItemText = ""
+        selectedCategoryForNewItem = nil
+        isAddingNewItem = false
+    }
+    
+    func startEditingItem(category: ButtonCategory, itemIndex: Int) {
+        let itemText = getItems(for: category.name).wrappedValue[itemIndex]
+        itemToEdit = (category, itemIndex, itemText)
+        isEditingItem = true
+    }
+    
+    func updateItem(category: ButtonCategory, index: Int, newValue: String) {
+        getItems(for: category.name).wrappedValue[index] = newValue
+        isEditingItem = false
+    }
+    
+    func deleteItem(category: ButtonCategory, itemIndex: Int) {
+        getItems(for: category.name).wrappedValue.remove(at: itemIndex)
+    }
+    
+    func selectItemDetail(item: String) {
+        selectedItemDetail = IdentifiableString(value: item)
+    }
+    
     func getItems(for category: String) -> Binding<[String]> {
         switch category {
         case "Food": return $foodItems
         case "Work": return $workItems
         default: return $noneItems
         }
+    }
+    
+    func saveData() {
+        saveList(foodItems, to: &savedFoodItems)
+        saveList(workItems, to: &savedWorkItems)
+        saveList(noneItems, to: &savedNoneItems)
+    }
+    
+    func loadData() {
+        foodItems = loadList(from: savedFoodItems) ?? []
+        workItems = loadList(from: savedWorkItems) ?? []
+        noneItems = loadList(from: savedNoneItems) ?? []
+    }
+    
+    private func saveList(_ list: [String], to storage: inout Data) {
+        if let data = try? JSONEncoder().encode(list) {
+            storage = data
+        }
+    }
+    
+    private func loadList(from storage: Data) -> [String]? {
+        if let decoded = try? JSONDecoder().decode([String].self, from: storage) {
+            return decoded
+        }
+        return nil
     }
 }
 
@@ -74,108 +185,110 @@ struct SectionView: View {
     @Binding var items: [String]
     var otherLists: [Binding<[String]>]
     @Binding var showingFullScreen: ButtonCategory?
+    var onEditItem: (ButtonCategory, Int) -> Void
+    var onDeleteItem: (ButtonCategory, Int) -> Void
+    var onSelectItem: (String) -> Void
     
     var body: some View {
         VStack(alignment: .leading) {
-            // 类别标题，支持点击进入全屏
             Text(title.name)
                 .font(.headline)
                 .padding(.top)
-                .onTapGesture {
-                    showingFullScreen = title
-                }
             
             List {
-                ForEach(items, id: \.self) { item in
-                    Text(item)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                        .onDrag {
-                            let data = "\(item)"
-                            return NSItemProvider(object: data as NSString)
+                ForEach(items.indices, id: \.self) { index in
+                    Text(items[index])
+                        .onTapGesture {
+                            onSelectItem(items[index])
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button("Edit") {
+                                onEditItem(title, index)
+                            }
+                            .tint(.blue)
+                            Button("Delete") {
+                                onDeleteItem(title, index)
+                            }
+                            .tint(.red)
                         }
                 }
-                .onMove(perform: moveItem)
-                .onDrop(of: [.text], delegate: CustomDropDelegate(currentList: $items, otherLists: otherLists))
             }
             .listStyle(PlainListStyle())
         }
     }
-    
-    // 移动内部列表顺序
-    func moveItem(from source: IndexSet, to destination: Int) {
-        items.move(fromOffsets: source, toOffset: destination)
-    }
 }
 
-struct CustomDropDelegate: DropDelegate {
-    @Binding var currentList: [String]
-    var otherLists: [Binding<[String]>]
-    
-    func validateDrop(info: DropInfo) -> Bool {
-        info.hasItemsConforming(to: [.text])
-    }
-    
-    func performDrop(info: DropInfo) -> Bool {
-        guard let itemProvider = info.itemProviders(for: [.text]).first else { return false }
-        
-        itemProvider.loadItem(forTypeIdentifier: "public.text", options: nil) { (data, _) in
-            guard let data = data as? String else { return }
-            
-            DispatchQueue.main.async {
-                // 从所有其他类别中移除该按钮
-                for list in otherLists {
-                    if let index = list.wrappedValue.firstIndex(of: data) {
-                        list.wrappedValue.remove(at: index)
-                        break
-                    }
-                }
-                
-                // 将按钮添加到当前类别
-                if !self.currentList.contains(data) {
-                    self.currentList.append(data)
-                }
-            }
-        }
-        return true
-    }
-}
-
-struct FullScreenCategoryView: View {
-    let title: String
-    @Binding var items: [String]
-    let onBack: () -> Void
+struct SelectCategoryView: View {
+    @Binding var newItemText: String
+    @Binding var selectedCategory: ButtonCategory?
+    let categories: [ButtonCategory]
+    let onSave: () -> Void
+    let onCancel: () -> Void
     
     var body: some View {
         NavigationView {
-            List {
-                ForEach(items, id: \.self) { item in
-                    Text(item)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
+            VStack {
+                TextField("Enter new item", text: $newItemText)
+                    .padding()
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                
+                Text("Select Category")
+                    .font(.headline)
+                    .padding(.top)
+                
+                List(categories) { category in
+                    Text(category.name)
+                        .onTapGesture {
+                            selectedCategory = category
+                        }
+                        .foregroundColor(selectedCategory == category ? .blue : .black)
                 }
-                .onMove(perform: moveItem)
+                
+                HStack {
+                    Button("Cancel", action: onCancel)
+                    Button("Save", action: onSave)
+                        .disabled(selectedCategory == nil || newItemText.isEmpty)
+                }
+                .padding()
             }
-            .navigationBarTitle(title, displayMode: .inline)
-            .navigationBarItems(leading: Button("返回") {
-                onBack()
-            })
+            .navigationBarTitle("Add Item", displayMode: .inline)
         }
-    }
-    
-    func moveItem(from source: IndexSet, to destination: Int) {
-        items.move(fromOffsets: source, toOffset: destination)
     }
 }
 
-struct CategorizedDraggableButtons_Previews: PreviewProvider {
-    static var previews: some View {
-        EditDetailView()
+struct EditItemView: View {
+    @State var itemText: String
+    let onSave: (String) -> Void
+    let onCancel: () -> Void
+    
+    var body: some View {
+        NavigationView {
+            VStack {
+                TextField("Edit item", text: $itemText)
+                    .padding()
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                
+                HStack {
+                    Button("Cancel", action: onCancel)
+                    Button("Save", action: { onSave(itemText) })
+                }
+                .padding()
+            }
+            .navigationBarTitle("Edit Item", displayMode: .inline)
+        }
+    }
+}
+
+struct ItemDetailView: View {
+    let detailText: String
+    
+    var body: some View {
+        VStack {
+            Text("Detail View")
+                .font(.largeTitle)
+                .padding()
+            Text(detailText)
+                .padding()
+        }
     }
 }

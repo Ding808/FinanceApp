@@ -23,7 +23,7 @@ struct ContentView: View {
                 FaceIDAuthView(isAuthenticated: $isAuthenticated)
             } else {
                 // Location permission issue or not in Canada
-                BlankPage(locationManager: locationManager, message: "Location permission denied or invalid location. Please allow access or move to a valid location.")
+                LocationBlankPage(locationManager: locationManager, message: "Location permission denied or invalid location. Please allow access or move to a valid location.")
             }
         }
         .onAppear {
@@ -63,6 +63,12 @@ struct FaceIDAuthView: View {
 
     var body: some View {
         VStack {
+            // Display the Face ID image
+            Image("FaceID")
+                .resizable()
+                .frame(width: 80, height: 80)
+                .padding(.bottom, 10)
+
             Text("Authenticate with Face ID to continue")
                 .font(.headline)
                 .padding()
@@ -95,16 +101,24 @@ struct FaceIDAuthView: View {
     }
 }
 
-struct BlankPage: View {
+struct LocationBlankPage: View {
     @ObservedObject var locationManager: LocationManager
     var message: String
 
     var body: some View {
         VStack {
+            // Display the Location image
+            Image("Location")
+                .resizable()
+                .frame(width: 80, height: 80)
+                .padding(.bottom, 10)
+
+            // Display the message
             Text(message)
                 .font(.headline)
                 .padding()
 
+            // Add a button for location access
             Button("Grant Location Access") {
                 locationManager.requestLocationPermission()
             }
@@ -200,5 +214,3 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         print("Failed to get user location: \(error.localizedDescription)")
     }
 }
-
-// MARK: - PersistenceController
